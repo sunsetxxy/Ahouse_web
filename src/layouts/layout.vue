@@ -85,7 +85,7 @@
         <!-- 个人信息弹窗 -->
         <a-modal
             v-model:visible="profileVisible"
-            title="个人信息"
+            title="个人信息123"
             :footer="null"
             width="400px"
         >
