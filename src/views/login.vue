@@ -80,7 +80,7 @@ const rules = ref({
 });
 
 const loading = ref(false);
-const rememberMe = ref(false);
+// const rememberMe = ref(false);
 
 const handleFinish = async () => {
     loading.value = true;

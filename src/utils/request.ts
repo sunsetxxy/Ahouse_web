@@ -73,26 +73,26 @@ service.interceptors.response.use(
         console.log(error);
 
         // 处理HTTP错误状态码
-        let message = "";
+        let errorMsg = ""; // 将变量名从 message 改为 errorMsg，避免与导入的 message 组件冲突
         switch (error.response?.status) {
             case 401:
-                message = "身份验证失败，请重新登录";
+                errorMsg = "身份验证失败，请重新登录";
                 // 跳转登录页示例
                 // router.replace('/login')
                 break;
             case 403:
-                message = "拒绝访问";
+                errorMsg = "拒绝访问";
                 break;
             case 404:
-                message = "请求资源不存在";
+                errorMsg = "请求资源不存在";
                 break;
             case 500:
-                message = "服务器错误";
+                errorMsg = "服务器错误";
                 break;
             default:
-                message = "网络连接异常";
+                errorMsg = "网络连接异常";
         }
-        message.error(message);
+        message.error(errorMsg); // 使用导入的 message 组件显示错误信息
         return Promise.reject(error);
     }
 );
