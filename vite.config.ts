@@ -9,4 +9,8 @@ export default defineConfig({
             "ant-design-vue": "/node_modules/ant-design-vue", // 添加别名配置
         },
     },
+    server:{
+        host:'0.0.0.0',
+        port:8080
+    }
 });

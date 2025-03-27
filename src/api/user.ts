@@ -15,3 +15,12 @@ export function register(data: any) {
         data,
     });
 }
+
+
+export function userList(data: any) {
+    return request({
+        url: "/user/userlist",
+        method: "get",
+        params:data,
+    });
+}

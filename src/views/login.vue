@@ -89,6 +89,7 @@ const handleFinish = async () => {
             console.log(res);
             if (res.code == 200) {
                 localStorage.setItem("token", res.access); // 新增的token存储
+                localStorage.setItem("is_staff", JSON.stringify(res.is_staff)); // 新增的refresh_token存储
                 router.replace("/");
             }
         });

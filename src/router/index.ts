@@ -4,6 +4,7 @@ import Layout from "../layouts/layout.vue";
 import About from "../views/about.vue";
 import Home from "../views/home.vue";
 import Login from "../views/login.vue";
+import CityFy from "../views/cityFy.vue";
 const routes = [
     {
         path: "/",
@@ -12,6 +13,7 @@ const routes = [
         children: [
             { path: "/home", name: "Home", component: Home },
             { path: "/about", name: "About", component: About },
+            { path: "/fychart", name: "fychart", component: CityFy },
         ],
     },
     { path: "/login", name: "Login", component: Login },

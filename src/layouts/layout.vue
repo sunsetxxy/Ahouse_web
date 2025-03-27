@@ -30,7 +30,10 @@
                 <a-menu-item key="home">
                     <span>房源列表</span>
                 </a-menu-item>
-                <a-menu-item key="about">
+                <a-menu-item key="fychart">
+                    <span>房源数据</span>
+                </a-menu-item>
+                <a-menu-item key="about" v-if="is_staff">
                     <span>用户列表</span>
                 </a-menu-item>
             </a-menu>
@@ -109,6 +112,7 @@ import { ref, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { UserOutlined, LogoutOutlined } from "@ant-design/icons-vue";
 
+const is_staff = JSON.parse(localStorage.getItem("is_staff") || "false");
 const router = useRouter();
 const route = useRoute();
 const selectedKeys = ref<string[]>([]);
@@ -124,7 +128,7 @@ const userInfo = ref({
 watch(
     () => route.path,
     (path) => {
-        selectedKeys.value = [path === "/" ? "home" : "about"];
+        selectedKeys.value = [path.split("/")[1]];
     },
     { immediate: true }
 );
@@ -132,10 +136,19 @@ watch(
 const handleMenuClick = ({ key }: { key: string }) => {
     switch (key) {
         case "home":
+            selectedKeys.value = ["home"];
+            collapsed.value = false;
             router.push("/home");
             break;
         case "about":
+            selectedKeys.value = ["about"];
+            collapsed.value = false;
             router.push("/about");
+            break;
+        case "fychart":
+            selectedKeys.value = ["fyChart"];
+            collapsed.value = false;
+            router.push("/fychart");
             break;
         default:
             break;
