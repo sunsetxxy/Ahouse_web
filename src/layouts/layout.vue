@@ -33,6 +33,9 @@
                 <a-menu-item key="fychart">
                     <span>房源数据</span>
                 </a-menu-item>
+                <a-menu-item key="fyzhanbi">
+                    <span>房源占比</span>
+                </a-menu-item>
                 <a-menu-item key="about" v-if="is_staff">
                     <span>用户列表</span>
                 </a-menu-item>
@@ -149,6 +152,11 @@ const handleMenuClick = ({ key }: { key: string }) => {
             selectedKeys.value = ["fyChart"];
             collapsed.value = false;
             router.push("/fychart");
+            break;
+        case "fyzhanbi":
+            selectedKeys.value = ["fyzhanbi"];
+            collapsed.value = false;
+            router.push("/fyzhanbi");
             break;
         default:
             break;

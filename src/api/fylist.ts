@@ -8,3 +8,21 @@ export const getFylist = (params: any) => {
         params,
     });
 };
+
+
+export const communityStatistics = (params: any) => {
+    return request({
+        url: "/house/community-statistics/",
+        method: "get",
+        params,
+    });
+};
+
+
+export const statistics = (params: any) => {
+    return request({
+        url: "/house/statistics/",
+        method: "get",
+        params,
+    });
+};

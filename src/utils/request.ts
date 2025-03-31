@@ -47,6 +47,7 @@ service.interceptors.response.use(
                 return Promise.reject(new Error("未授权"));
             case 403:
                 message.error("没有操作权限");
+                router.replace("/login");
                 return Promise.reject(new Error("禁止访问"));
             case 404:
                 message.error("请求资源不存在");
@@ -78,10 +79,11 @@ service.interceptors.response.use(
             case 401:
                 errorMsg = "身份验证失败，请重新登录";
                 // 跳转登录页示例
-                // router.replace('/login')
+                router.replace('/login')
                 break;
             case 403:
                 errorMsg = "拒绝访问";
+                router.replace('/login')
                 break;
             case 404:
                 errorMsg = "请求资源不存在";

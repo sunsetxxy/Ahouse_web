@@ -5,6 +5,7 @@ import About from "../views/about.vue";
 import Home from "../views/home.vue";
 import Login from "../views/login.vue";
 import CityFy from "../views/cityFy.vue";
+import FYZhanBi from "../views/fyzhanbi.vue";
 const routes = [
     {
         path: "/",
@@ -14,6 +15,8 @@ const routes = [
             { path: "/home", name: "Home", component: Home },
             { path: "/about", name: "About", component: About },
             { path: "/fychart", name: "fychart", component: CityFy },
+            { path: "/fyzhanbi", name: "fyzhanbi", component: FYZhanBi },
+
         ],
     },
     { path: "/login", name: "Login", component: Login },
