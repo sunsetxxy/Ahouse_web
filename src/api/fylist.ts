@@ -26,3 +26,30 @@ export const statistics = (params: any) => {
         params,
     });
 };
+
+// 获取地区房源单价统计
+export const singlePriceStatistics = (params: any) => {
+    return request({
+        url: "/house/single-price-statistics/",
+        method: "get",
+        params,
+    });
+};
+
+// 获取地区房源金额统计
+export const priceStatistics = (params: any) => {
+    return request({
+        url: "/house/price-statistics/",
+        method: "get",
+        params,
+    });
+};
+
+// 获取房源属性统计
+export const attributeStatistics = (params: any) => {
+    return request({
+        url: "/house/attribute-statistics/",
+        method: "get",
+        params,
+    });
+};

@@ -28,13 +28,13 @@
                 style="background: #fff; border-right: none"
             >
                 <a-menu-item key="home">
-                    <span>房源列表</span>
+                    <span>房源信息</span>
                 </a-menu-item>
                 <a-menu-item key="fychart">
-                    <span>房源数据</span>
+                    <span>城市对比</span>
                 </a-menu-item>
                 <a-menu-item key="fyzhanbi">
-                    <span>房源占比</span>
+                    <span>区域对比</span>
                 </a-menu-item>
                 <a-menu-item key="about" v-if="is_staff">
                     <span>用户列表</span>

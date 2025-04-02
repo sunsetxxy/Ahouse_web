@@ -27,12 +27,25 @@
                 </div>
             </a-col>
         </a-row>
+        <p class="title">城市房源价格对比</p>
+        <a-row>
+            <a-col :span="24">
+                <div ref="totalPriceChart" class="chart">
+                </div>
+            </a-col>
+        </a-row>
+        <a-row>
+            <a-col :span="24">
+                <div ref="singlePriceChart" class="chart">
+                </div>
+            </a-col>
+        </a-row>
     </div>
 </template>
 
 <script setup>
     import { reactive, onMounted, ref } from "vue";
-    import { getFylist, communityStatistics }  from "@/api/fylist";
+    import { getFylist, communityStatistics, singlePriceStatistics, priceStatistics }  from "@/api/fylist";
     import * as echarts from 'echarts'
     const cityFy = reactive([
         {
@@ -60,6 +73,8 @@
     const shanghai = ref(null);
     const chongqing = ref(null);
     const hangzhou = ref(null);
+    const totalPriceChart = ref(null);
+    const singlePriceChart = ref(null);
     
     onMounted(() => {
         cityFy.forEach(async (item) => {
@@ -114,6 +129,61 @@
                     initChart(hangzhou.value, '杭州在售房源排行', xData, yData);
             }
         })
+        
+        // 获取四个城市的总价数据并展示
+        const cityNames = ['北京', '上海', '重庆', '杭州'];
+        const totalPriceData = [];
+        const singlePriceData = [];
+        
+        // 获取总价数据
+        Promise.all([
+            priceStatistics({city_id: 1}),
+            priceStatistics({city_id: 2}),
+            priceStatistics({city_id: 3}),
+            priceStatistics({city_id: 4})
+        ]).then(results => {
+            results.forEach((res, index) => {
+                if (res.code == 200) {
+                    totalPriceData.push({
+                        name: cityNames[index],
+                        value: res.data.length > 0 ? res.data[0].value : 0
+                    });
+                }
+                
+                // 当所有数据都获取完毕后，初始化总价对比图表
+                if (totalPriceData.length === 4) {
+                    initComparisonChart(totalPriceChart.value, '城市房源总价对比', 
+                        cityNames, 
+                        totalPriceData.map(item => item.value),
+                        '总价(万元)');
+                }
+            });
+        });
+        
+        // 获取单价数据
+        Promise.all([
+            singlePriceStatistics({city_id: 1}),
+            singlePriceStatistics({city_id: 2}),
+            singlePriceStatistics({city_id: 3}),
+            singlePriceStatistics({city_id: 4})
+        ]).then(results => {
+            results.forEach((res, index) => {
+                if (res.code == 200) {
+                    singlePriceData.push({
+                        name: cityNames[index],
+                        value: res.data.length > 0 ? res.data[0].value : 0
+                    });
+                }
+                
+                // 当所有数据都获取完毕后，初始化单价对比图表
+                if (singlePriceData.length === 4) {
+                    initComparisonChart(singlePriceChart.value, '城市房源单价对比', 
+                        cityNames, 
+                        singlePriceData.map(item => item.value),
+                        '单价(元/平方米)');
+                }
+            });
+        });
     })
     const initChart = (dom, title, xData, yData) => {
         const myChart = echarts.init(dom);
@@ -165,6 +235,80 @@
                 left: '3%',
                 right: '4%',
                 bottom: '3%',
+                containLabel: true
+            }
+        }
+        myChart.setOption(option);
+        
+        // 响应式处理
+        window.addEventListener('resize', () => {
+            myChart.resize();
+        });
+    }
+    
+    // 初始化城市价格对比图表
+    const initComparisonChart = (dom, title, xData, yData, yAxisName) => {
+        const myChart = echarts.init(dom);
+        const option = {
+            title: {
+                text: title,
+                left: 'center',
+                textStyle: {
+                    fontSize: 18,
+                    fontWeight: 'bold'
+                }
+            },
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'shadow'
+                }
+            },
+            xAxis: {
+                type: 'category',
+                data: xData,
+                axisLabel: {
+                    interval: 0,
+                    fontSize: 14
+                }
+            },
+            yAxis: {
+                type: 'value',
+                name: yAxisName,
+                nameTextStyle: {
+                    fontSize: 14
+                }
+            },
+            series: [{
+                name: title,
+                type: 'bar',
+                barWidth: '40%',
+                data: yData,
+                itemStyle: {
+                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                        { offset: 0, color: '#ff9a9e' },
+                        { offset: 1, color: '#fad0c4' }
+                    ])
+                },
+                emphasis: {
+                    itemStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: '#ff9a9e' },
+                            { offset: 1, color: '#fad0c4' }
+                        ])
+                    }
+                },
+                label: {
+                    show: true,
+                    position: 'top',
+                    formatter: '{c}'
+                }
+            }],
+            grid: {
+                left: '5%',
+                right: '5%',
+                bottom: '10%',
+                top: '15%',
                 containLabel: true
             }
         }
