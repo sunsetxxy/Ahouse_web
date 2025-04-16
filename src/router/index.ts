@@ -6,6 +6,7 @@ import Home from "../views/home.vue";
 import Login from "../views/login.vue";
 import CityFy from "../views/cityFy.vue";
 import FYZhanBi from "../views/fyzhanbi.vue";
+import ClusterAnalysis from "../views/clusterAnalysis.vue";
 const routes = [
     {
         path: "/",
@@ -16,7 +17,7 @@ const routes = [
             { path: "/about", name: "About", component: About },
             { path: "/fychart", name: "fychart", component: CityFy },
             { path: "/fyzhanbi", name: "fyzhanbi", component: FYZhanBi },
-
+            { path: "/clusterAnalysis", name: "ClusterAnalysis", component: ClusterAnalysis },
         ],
     },
     { path: "/login", name: "Login", component: Login },

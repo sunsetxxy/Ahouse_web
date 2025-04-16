@@ -55,7 +55,7 @@ export function updatePassword(data: any) {
 // 管理员更新用户信息
 export function adminUpdateUserInfo(userId: number, data: any) {
     return request({
-        url: `/user/admininfo`,
+        url: `/user/admininfo/${userId}`,
         method: "put",
         data,
     });

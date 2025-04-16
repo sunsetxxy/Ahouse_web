@@ -38,6 +38,9 @@ service.interceptors.response.use(
     (response: AxiosResponse) => {
         const { status } = response;
         const res = response.data;
+        
+        console.log('API响应状态:', status);
+        console.log('API响应数据:', res);
 
         // 处理HTTP状态码
         switch (status) {

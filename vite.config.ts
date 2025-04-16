@@ -12,5 +12,8 @@ export default defineConfig({
     server:{
         host:'0.0.0.0',
         port:8080
+    },
+    optimizeDeps: {
+        exclude: ['echarts'] // 排除echarts库，避免依赖优化问题
     }
 });

@@ -126,10 +126,10 @@
                                 <template #icon><reload-outlined /></template>
                                 重置
                             </a-button>
-                            <a-button type="primary" @click="showAddModal">
+                            <!-- <a-button type="primary" @click="showAddModal">
                                 <template #icon><plus-outlined /></template>
                                 新增
-                            </a-button>
+                            </a-button> -->
                         </a-space>
                     </a-col>
                 </a-row>
@@ -352,7 +352,7 @@ import {
     HomeOutlined
 } from "@ant-design/icons-vue";
 import type { TableProps } from "ant-design-vue";
-import { getFylist } from "@/api/fylist";
+import { getFylist, updateHouse } from "@/api/fylist";
 
 // 搜索表单
 const searchForm = reactive({
@@ -523,7 +523,7 @@ const fetchData = async () => {
         const res = await getFylist({
             ...searchForm,
             page: pagination.current,
-            pageSize: pagination.pageSize,
+            size: pagination.pageSize,
         });
         data.value = res.data;
         pagination.total = res.count || res.data.length;
@@ -573,10 +573,13 @@ const handleSubmit = async () => {
     try {
         // 这里应该调用新增/编辑接口
         // if (formState.id) {
-        //   await updateHouse(formState);
+        const res:any = await updateHouse(formState);
+        console.log(res);
+        
         // } else {
         //   await addHouse(formState);
         // }
+        if (res.code != 200) return message.error(res.msg);
         message.success(formState.id ? "编辑成功" : "新增成功");
         modalVisible.value = false;
         fetchData();
@@ -600,6 +603,7 @@ const resetForm = () => {
         single_price: 0,
         remark: "",
     });
+    modalVisible.value = false;
 };
 
 // 新增权限状态

@@ -36,6 +36,9 @@
                 <a-menu-item key="fyzhanbi">
                     <span>区域对比</span>
                 </a-menu-item>
+                <a-menu-item key="clusterAnalysis">
+                    <span>聚类分析</span>
+                </a-menu-item>
                 <a-menu-item key="about" v-if="is_staff">
                     <span>用户列表</span>
                 </a-menu-item>
@@ -208,6 +211,11 @@ const handleMenuClick = ({ key }: { key: string }) => {
             selectedKeys.value = ["fyzhanbi"];
             collapsed.value = false;
             router.push("/fyzhanbi");
+            break;
+        case "clusterAnalysis":
+            selectedKeys.value = ["clusterAnalysis"];
+            collapsed.value = false;
+            router.push("/clusterAnalysis");
             break;
         default:
             break;

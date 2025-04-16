@@ -488,7 +488,7 @@ const handleSubmit = async () => {
   try {
     if (isAdmin.value) {
       // 管理员更新用户信息
-      const res = await adminUpdateUserInfo({
+      const res = await adminUpdateUserInfo(formState.id,{
         // 不传递用户名，因为用户名不可修改
         email: formState.email,
         first_name: formState.first_name,

@@ -1,4 +1,4 @@
-import request from "@/utils/request";
+import request from "../utils/request";
 
 // 获取房源列表
 export const getFylist = (params: any) => {
@@ -51,5 +51,14 @@ export const attributeStatistics = (params: any) => {
         url: "/house/attribute-statistics/",
         method: "get",
         params,
+    });
+};
+
+// 修改房源信息
+export const updateHouse = (data: any) => {
+    return request({
+        url: "/house/house/update/",
+        method: "put",
+        data,
     });
 };
