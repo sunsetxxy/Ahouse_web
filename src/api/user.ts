@@ -8,6 +8,7 @@ export function login(data: any) {
     });
 }
 
+
 export function register(data: any) {
     return request({
         url: "/user/register",
@@ -54,7 +55,7 @@ export function updatePassword(data: any) {
 // 管理员更新用户信息
 export function adminUpdateUserInfo(userId: number, data: any) {
     return request({
-        url: `/user/admininfo/${userId}`,
+        url: `/user/admininfo`,
         method: "put",
         data,
     });

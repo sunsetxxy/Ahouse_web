@@ -161,7 +161,13 @@
                                 <template #icon><eye-outlined /></template>
                                 查看
                             </a-button>
-                            <a-button type="link" size="small" @click="handleEdit(record)">
+                            <!-- 添加 v-if 条件判断 -->
+                            <a-button 
+                                type="link" 
+                                size="small" 
+                                @click="handleEdit(record)"
+                                v-if="is_staff"
+                            >
                                 <template #icon><edit-outlined /></template>
                                 编辑
                             </a-button>
@@ -595,6 +601,9 @@ const resetForm = () => {
         remark: "",
     });
 };
+
+// 新增权限状态
+const is_staff = JSON.parse(localStorage.getItem("is_staff") || "false");
 
 // 初始化加载数据
 onMounted(() => {

@@ -91,21 +91,73 @@
         <!-- 个人信息弹窗 -->
         <a-modal
             v-model:visible="profileVisible"
-            title="个人信息123"
+            title="个人信息"
             :footer="null"
             width="400px"
         >
             <a-descriptions bordered :column="1">
                 <a-descriptions-item label="用户名">
-                    {{ userInfo.name || "未设置" }}
+                    {{ userInfo.username || "未设置" }}
                 </a-descriptions-item>
-                <a-descriptions-item label="手机号">
-                    {{ userInfo.phone || "未设置" }}
+                <a-descriptions-item label="邮箱">
+                    {{ userInfo.email || "未设置" }}
                 </a-descriptions-item>
                 <a-descriptions-item label="角色">
-                    {{ userInfo.role || "普通用户" }}
+                    {{ userInfo.is_staff ? "管理员" : "普通用户" }}
                 </a-descriptions-item>
             </a-descriptions>
+
+            <!-- 添加修改密码入口 -->
+            <div style="margin-top: 24px; border-top: 1px solid #f0f0f0; padding-top: 16px;">
+                <a-button type="link" @click="showChangePassword = true" block>
+                    修改密码
+                </a-button>
+            </div>
+        </a-modal>
+        
+        <!-- 新增修改密码弹窗 -->
+        <a-modal
+            v-model:visible="showChangePassword"
+            title="修改密码"
+            :footer="null"
+            width="400px"
+        >
+            <a-form :model="passwordForm" :rules="passwordRules" @finish="handleChangePassword">
+                <a-form-item name="oldPassword">
+                    <a-input-password
+                        v-model:value="passwordForm.oldPassword"
+                        placeholder="旧密码"
+                        size="large"
+                    />
+                </a-form-item>
+                
+                <a-form-item name="newPassword">
+                    <a-input-password
+                        v-model:value="passwordForm.newPassword"
+                        placeholder="新密码（至少6位）"
+                        size="large"
+                    />
+                </a-form-item>
+                
+                <a-form-item name="confirmPassword">
+                    <a-input-password
+                        v-model:value="passwordForm.confirmPassword"
+                        placeholder="确认密码"
+                        size="large"
+                    />
+                </a-form-item>
+        
+                <a-form-item>
+                    <a-button
+                        type="primary"
+                        html-type="submit"
+                        block
+                        :loading="changingPassword"
+                    >
+                        提交修改
+                    </a-button>
+                </a-form-item>
+            </a-form>
         </a-modal>
     </a-layout>
 </template>
@@ -114,6 +166,8 @@
 import { ref, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { UserOutlined, LogoutOutlined } from "@ant-design/icons-vue";
+import { message } from "ant-design-vue";
+import { getUserInfo, updatePassword } from "@/api/user";
 
 const is_staff = JSON.parse(localStorage.getItem("is_staff") || "false");
 const router = useRouter();
@@ -121,10 +175,7 @@ const route = useRoute();
 const selectedKeys = ref<string[]>([]);
 const collapsed = ref<boolean>(false);
 const profileVisible = ref(false);
-const userInfo = ref({
-    name: "张三",
-    phone: "13800138000",
-    role: "管理员",
+const userInfo = ref<any>({
 });
 
 // 根据当前路由设置选中的菜单项
@@ -173,9 +224,55 @@ const handleLogout = () => {
 const showProfile = () => {
     profileVisible.value = true;
     // 这里可以添加获取用户信息的接口调用
-    // getUserInfo().then(res => {
-    //     userInfo.value = res.data;
-    // });
+    getUserInfo().then((res:any) => {
+        userInfo.value = res.data;
+    });
+};
+
+// 添加新的响应式变量
+const showChangePassword = ref(false);
+const changingPassword = ref(false);
+const passwordForm = ref({
+    oldPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+});
+
+// 添加密码验证规则
+const passwordRules = {
+    oldPassword: [{ required: true, message: '请输入旧密码' }],
+    newPassword: [
+        { required: true, message: '请输入新密码' },
+        { min: 6, message: '密码至少6位' }
+    ],
+    confirmPassword: [
+        { required: true, message: '请确认密码' },
+        { validator: (_, value) => 
+            value === passwordForm.value.newPassword ? 
+            Promise.resolve() : Promise.reject('两次密码不一致')
+        }
+    ]
+};
+
+// 添加修改密码方法
+const handleChangePassword = async () => {
+    try {
+        changingPassword.value = true;
+        const { oldPassword, newPassword, confirmPassword } = passwordForm.value;
+        const res:any = await updatePassword({
+            "old_password": oldPassword,
+        "new_password": newPassword,
+        "new_password2": confirmPassword
+        });
+        if (res.code !== 200)  throw new Error(res.message);
+        message.success('密码修改成功');
+        showChangePassword.value = false;
+        passwordForm.value = { oldPassword: '', newPassword: '', confirmPassword: '' };
+    } catch (error) {
+        message.error('密码修改失败');
+    } finally {
+        changingPassword.value = false;
+    }
 };
 </script>
 

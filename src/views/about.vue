@@ -488,13 +488,14 @@ const handleSubmit = async () => {
   try {
     if (isAdmin.value) {
       // 管理员更新用户信息
-      const res = await adminUpdateUserInfo(formState.id, {
+      const res = await adminUpdateUserInfo({
         // 不传递用户名，因为用户名不可修改
         email: formState.email,
         first_name: formState.first_name,
         last_name: formState.last_name,
         is_staff: formState.is_staff,
-        is_active: formState.is_active
+        is_active: formState.is_active,
+        username: formState.username // 传递用户名
       });
       if (res.code === 200 || res.code === "200") {
         message.success("用户信息修改成功");
