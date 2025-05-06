@@ -8,3 +8,12 @@ export const getClusterAnalysis = (params: any) => {
         params,
     });
 };
+
+// 获取区域列表
+export const getAreaList = (cityId: number) => {
+    return request({
+        url: "/house/areas/",
+        method: "get",
+        params: { city_id: cityId },
+    });
+};

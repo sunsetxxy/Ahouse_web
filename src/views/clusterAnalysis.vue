@@ -1,594 +1,502 @@
 <template>
   <div class="cluster-analysis-container">
-    <p class="title">房源聚类分析</p>
-    <a-card class="filter-card" :bordered="false">
-      <div class="card-title">
-        <cluster-outlined />
-        <span>聚类参数设置</span>
-      </div>
-      <a-form layout="inline">
-        <a-form-item label="城市">
-          <a-select v-model:value="queryParams.city_id" placeholder="选择城市" style="width: 120px">
-            <a-select-option :value="1">北京</a-select-option>
-            <a-select-option :value="2">上海</a-select-option>
-            <a-select-option :value="3">重庆</a-select-option>
-            <a-select-option :value="4">杭州</a-select-option>
+    <div class="params-panel">
+      <a-row :gutter="16" align="middle">
+        <a-col :span="4">
+          <a-select v-model:value="params.city" placeholder="城市" style="width: 100%" @change="onCityChange">
+            <a-select-option v-for="city in cityList" :key="city.value" :value="city.value">{{ city.label }}</a-select-option>
           </a-select>
-        </a-form-item>
-        <a-form-item label="区域">
-          <a-select v-model:value="queryParams.area_id" placeholder="选择区域" style="width: 120px">
-            <a-select-option :value="null">全部</a-select-option>
-            <!-- 区域选项将根据选择的城市动态加载 -->
+        </a-col>
+        <a-col :span="4">
+          <a-select v-model:value="params.region" placeholder="区域" style="width: 100%">
+            <a-select-option v-for="region in regionList" :key="region.value" :value="region.value">{{ region.label }}</a-select-option>
           </a-select>
-        </a-form-item>
-        <a-form-item label="聚类数量">
-          <a-slider
-            v-model:value="queryParams.n_clusters"
-            :min="2"
-            :max="10"
-            :step="1"
-            style="width: 120px"
-          />
-        </a-form-item>
-        <a-form-item label="特征选择">
-          <a-checkbox-group v-model:value="selectedFeatures">
-            <a-checkbox value="price">价格</a-checkbox>
-            <a-checkbox value="single_price">单价</a-checkbox>
-            <a-checkbox value="use_area">使用面积</a-checkbox>
-            <a-checkbox value="room_count">房间数</a-checkbox>
-            <a-checkbox value="floor">楼层</a-checkbox>
+        </a-col>
+        <a-col :span="4">
+          <a-select v-model:value="params.algorithm" placeholder="聚类算法" style="width: 100%">
+            <a-select-option value="kmeans">K-means</a-select-option>
+          </a-select>
+        </a-col>
+        <a-col :span="4">
+          <a-input-number v-model:value="params.n_clusters" :min="2" :max="10" placeholder="聚类数" style="width: 100%" />
+        </a-col>
+        <a-col :span="4">
+          <a-input-number v-model:value="params.limit" :min="1" :max="10" placeholder="样本数" style="width: 100%" />
+        </a-col>
+        <a-col :span="4">
+          <a-button type="primary" @click="handleAnalyze">分析</a-button>
+        </a-col>
+      </a-row>
+      <a-row :gutter="16" style="margin-top: 16px;">
+        <a-col :span="24">
+          <span>特征选择：</span>
+          <a-checkbox-group v-model:value="params.features">
+            <a-checkbox v-for="f in featureOptions" :key="f.value" :value="f.value">{{ f.label }}</a-checkbox>
           </a-checkbox-group>
-        </a-form-item>
-        <a-form-item label="样本数量">
-          <a-input-number
-            v-model:value="queryParams.limit"
-            :min="1"
-            :max="100"
-            style="width: 100px"
-          />
-        </a-form-item>
-        <a-form-item>
-          <a-button type="primary" @click="fetchClusterData">分析</a-button>
-        </a-form-item>
-      </a-form>
-    </a-card>
-
-    <a-spin :spinning="loading">
-      <!-- 聚类结果展示 -->
-      <div v-if="clusterData" class="result-container">
-        <p class="title">聚类分析结果</p>
-        <a-tabs v-model:activeKey="activeTabKey">
-          <a-tab-pane key="scatter" tab="散点图">
-            <a-row :gutter="16" class="chart-row">
-              <a-col :span="24">
-                <div class="chart-container">
-                  <p class="chart-title">房源聚类散点图</p>
-                  <div ref="scatterChart" class="chart"></div>
-                </div>
-              </a-col>
-            </a-row>
-          </a-tab-pane>
-          <a-tab-pane key="radar" tab="雷达图">
-            <a-row :gutter="16" class="chart-row">
-              <a-col :span="24">
-                <div class="chart-container">
-                  <p class="chart-title">聚类中心特征雷达图</p>
-                  <div ref="radarChart" class="chart"></div>
-                </div>
-              </a-col>
-            </a-row>
-          </a-tab-pane>
-          <a-tab-pane key="bar" tab="柱状图">
-            <a-row :gutter="16" class="chart-row">
-              <a-col :span="24">
-                <div class="chart-container">
-                  <p class="chart-title">聚类样本数量分布</p>
-                  <div ref="barChart" class="chart"></div>
-                </div>
-              </a-col>
-            </a-row>
-          </a-tab-pane>
-          <a-tab-pane key="table" tab="数据表格">
-            <a-row :gutter="16" class="chart-row">
-              <a-col :span="24">
-                <div class="chart-container">
-                  <p class="chart-title">聚类数据</p>
-                  <a-table
-                    :columns="clusterColumns"
-                    :data-source="clusterTableData"
-                    :pagination="false"
-                    class="cluster-table"
-                  />
-                </div>
-              </a-col>
-            </a-row>
-            <a-row :gutter="16" class="chart-row">
-              <a-col :span="24">
-                <div class="chart-container">
-                  <p class="chart-title">代表性样本</p>
-                  <a-table
-                    :columns="sampleColumns"
-                    :data-source="sampleTableData"
-                    :pagination="{ pageSize: 10 }"
-                    class="sample-table"
-                  />
-                </div>
-              </a-col>
-            </a-row>
-          </a-tab-pane>
-        </a-tabs>
-      </div>
-
-      <!-- 无数据提示 -->
-      <a-empty v-else description="暂无聚类数据，请选择参数进行分析或调整参数后重试" />
-      <template v-if="error">
-        <div style="color: red; text-align: center; margin-top: 16px;">{{ error }}</div>
-      </template>
-    </a-spin>
+        </a-col>
+      </a-row>
+    </div>
+    <div v-if="loading" class="loading-panel"><a-spin /></div>
+    <div v-else-if="result && Array.isArray(result.clusters) && Array.isArray(result.samples)" class="result-panel">
+      <a-row :gutter="16" style="margin-bottom: 24px;">
+        <a-col :span="24">
+          <div class="chart-container">
+            <p class="chart-title">聚类分布散点图</p>
+            <div ref="scatterChart" class="chart"></div>
+          </div>
+        </a-col>
+      </a-row>
+      <a-row :gutter="16" style="margin-bottom: 24px;">
+        <a-col :span="24">
+          <div class="chart-container">
+            <p class="chart-title">聚类特征雷达图</p>
+            <div ref="radarChart" class="chart"></div>
+          </div>
+        </a-col>
+      </a-row>
+      <a-row :gutter="16" style="margin-bottom: 24px;">
+        <a-col :span="24">
+          <div class="chart-container">
+            <p class="chart-title">聚类数量饼图</p>
+            <div ref="pieChart" class="chart"></div>
+          </div>
+        </a-col>
+      </a-row>
+      <a-row style="margin-top: 24px;">
+        <a-col :span="24">
+          <a-table :columns="tableColumns" :data-source="result.samples" row-key="id" bordered :pagination="false" />
+        </a-col>
+      </a-row>
+    </div>
+    <div v-else class="empty-panel">
+      <a-empty description="暂无聚类数据，请选择参数后点击分析" />
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
-import { message } from 'ant-design-vue'
-import * as echarts from 'echarts'
-import { ClusterOutlined } from '@ant-design/icons-vue'
-import axios from 'axios'
+import { ref, reactive, onMounted, watch, nextTick } from 'vue';
+import { getClusterAnalysis, getAreaList } from '@/api/cluster';
+import * as echarts from 'echarts';
+import { message } from 'ant-design-vue';
 
-// 查询参数
-const queryParams = ref({
-  city_id: 1,
-  area_id: null,
-  n_clusters: 3,
-  features: 'price,single_price,use_area',
-  limit: 10,
-  random_state: undefined
-})
+const cityList = [
+  { label: '全部', value: ''  },
+  { label: '北京', value: 1 },
+  { label: '上海', value: 2 },
+  { label: '重庆', value: 3 },
+  { label: '杭州', value: 4 }
+];
+const regionList = ref([]);
+const featureOptions = [
+  { label: '总价', value: 'price' },
+  { label: '单价', value: 'single_price' },
+  { label: '使用面积', value: 'use_area' },
+  { label: '房间数', value: 'type_name' },
+  { label: '楼层', value: 'floor' }
+];
 
-// 特征选择
-const selectedFeatures = ref(['price', 'single_price', 'use_area'])
-
-// 监听特征选择变化，更新查询参数
-watch(selectedFeatures, (newVal) => {
-  if (newVal.length > 0) {
-    queryParams.value.features = newVal.join(',')
-  } else {
-    // 至少选择一个特征
-    selectedFeatures.value = ['price']
-    queryParams.value.features = 'price'
+// 楼层分类映射函数
+function mapFloorToCategory(floor) {
+  if (!floor) return 0;
+  switch(floor) {
+    case '底层': return 1;
+    case '低层': return 2;
+    case '中层': return 3;
+    case '高层': return 4;
+    case '顶层': return 5;
+    default: return 0;
   }
-})
+}
 
-// 数据和加载状态
-const clusterData = ref(null)
-const loading = ref(false)
-const error = ref(null)
-const activeTabKey = ref('scatter')
+// 楼层分类名称映射
+const floorCategoryMap = {
+  0: '未知',
+  1: '底层',
+  2: '低层',
+  3: '中层',
+  4: '高层',
+  5: '顶层'
+};
+const params = reactive({
+  city: '',
+  region: '',
+  algorithm: 'kmeans',
+  n_clusters: 4,
+  features: ['price', 'single_price', 'use_area', 'floor', 'type_name'],
+  limit: 1
+});
+const loading = ref(false);
+const result = ref(null);
+const scatterChart = ref(null);
+const radarChart = ref(null);
+const pieChart = ref(null);
+const histChart = ref(null);
 
-// 图表引用
-const scatterChart = ref(null)
-const radarChart = ref(null)
-const barChart = ref(null)
+const tableColumns = ref([
+  { title: '房源ID', dataIndex: 'id', key: 'id' },
+  { title: '聚类', dataIndex: 'cluster', key: 'cluster' },
+  { title: '总格', dataIndex: 'price', key: 'price' },
+  { title: '单价', dataIndex: 'single_price', key: 'single_price' },
+  { title: '使用面积', dataIndex: 'use_area', key: 'area' },
+  { title: '房间数', dataIndex: 'type_name', key: 'room_count' },
+  { title: '楼层(数值)', dataIndex: 'floor_category', key: 'floor_category' },
+]);
 
-// 表格列定义
-const clusterColumns = computed(() => {
-  const baseColumns = [
-    {
-      title: '聚类ID',
-      dataIndex: 'cluster_id',
-      key: 'cluster_id',
-    },
-    {
-      title: '样本数量',
-      dataIndex: 'count',
-      key: 'count',
-      sorter: (a, b) => a.count - b.count,
+const columnTitleMap = {
+  id: '房源ID',
+  house_name: '小区名',
+  city_name: '城市',
+  localhost: '地区',
+  cluster_id: '聚类分类',
+  cluster: '聚类',
+  price: '价格',
+  single_price: '单价',
+  use_area: '使用面积',
+  area: '使用面积',
+  room_count: '房间数',
+  floor: '楼层',
+  type_name: '房屋格局'
+};
+
+function onCityChange(val) {
+  regionList.value = [{ label: '全部', value: '' }];
+  if (!val) return;
+  getAreaList(val).then(res => {
+    if (res && res.code === '200' && Array.isArray(res.data)) {
+      regionList.value = [{ label: '全部', value: '' }, ...res.data.map(area => ({ label: area.name, value: area.id }))];
+    } else {
+      regionList.value = [{ label: '全部', value: '' }];
     }
-  ]
-  // 根据选择的特征动态添加列
-  const titleMap = {
-    price: '价格(万元)',
-    single_price: '单价(万元/平方米)',
-    use_area: '使用面积(平方米)',
-    total_area: '建筑面积(平方米)',
-    room_count: '房间数',
-    floor: '楼层'
+  }).catch(() => {
+    regionList.value = [{ label: '全部', value: '' }];
+  });
+}
+
+function handleAnalyze() {
+  loading.value = true;
+  // 组装参数，处理 area_id
+  const reqParams = {
+    city_id: params.city,
+    n_clusters: params.n_clusters,
+    algorithm: params.algorithm,
+    limit: params.limit,
+    features: params.features.join(",")
+  };
+  // 仅当区域不是"全部
+  if (params.region !== '' && params.region !== 0 && params.region !== '0') {
+    reqParams.area_id = Number(params.region);
   }
-  const featureColumns = selectedFeatures.value.map(feature => ({
-    title: titleMap[feature] || feature,
-    dataIndex: feature,
-    key: feature,
-    sorter: (a, b) => a[feature] - b[feature],
-  }))
-  return [...baseColumns, ...featureColumns]
-})
-
-const sampleColumns = computed(() => {
-  const baseColumns = [
-    {
-      title: '房源ID',
-      dataIndex: 'id',
-      key: 'id',
-    },
-    {
-      title: '房源名称',
-      dataIndex: 'house_name',
-      key: 'house_name',
-    },
-    {
-      title: '城市',
-      dataIndex: 'city_name',
-      key: 'city_name',
-    },
-    {
-      title: '区域',
-      dataIndex: 'area_name',
-      key: 'area_name',
-    },
-    {
-      title: '聚类ID',
-      dataIndex: 'cluster_id',
-      key: 'cluster_id',
+  getClusterAnalysis(reqParams).then(res => {
+    loading.value = false;
+    if (res.code === '200') {
+      // 处理楼层数据，将文本转换为数值分类
+      if (res.data && Array.isArray(res.data.samples)) {
+        res.data.samples.forEach(sample => {
+          // 保存原始楼层文本
+          sample.floor_text = sample.floor;
+          // 转换为数值分类
+          sample.floor_category = mapFloorToCategory(sample.floor);
+        });
+      }
+      // 对clusters中的楼层字段也进行数值映射
+      if (res.data && Array.isArray(res.data.clusters)) {
+        res.data.clusters.forEach(cluster => {
+          cluster.floor_text = cluster.floor;
+          cluster.floor_category = mapFloorToCategory(cluster.floor);
+        });
+      }
+      result.value = res.data;
+      nextTick(() => {
+        renderCharts();
+      });
+    } else {
+      message.error(res.info || '分析失败');
     }
-  ]
-  const titleMap = {
-    price: '价格(万元)',
-    single_price: '单价(万元/平方米)',
-    use_area: '使用面积(平方米)',
-    total_area: '建筑面积(平方米)',
-    room_count: '房间数',
-    floor: '楼层'
+  }).catch(() => {
+    loading.value = false;
+    message.error('请求失败');
+  });
+}
+
+function renderCharts() {
+  if (!result.value) return;
+  // 散点图
+  if (scatterChart.value && Array.isArray(result.value.clusters)) {
+    // 新增判断 visualization 字段
+    if (Array.isArray(result.value.visualization) && result.value.visualization.length > 0) {
+      const chart = echarts.init(scatterChart.value);
+      // 按cluster_id分组数据
+      const clusterGroups = {};
+      result.value.visualization.forEach(item => {
+        const clusterId = item.cluster_id !== undefined ? item.cluster_id : 0;
+        if (!clusterGroups[clusterId]) {
+          clusterGroups[clusterId] = [];
+        }
+        clusterGroups[clusterId].push([item.x, item.y]);
+      });
+      // 构建echarts所需的series数据
+      const series = Object.keys(clusterGroups).map(clusterId => ({
+        name: `Cluster ${clusterId}`,
+        type: 'scatter',
+        data: clusterGroups[clusterId],
+        symbolSize: 10
+      }));
+      chart.setOption({
+        tooltip: {
+          formatter: function(params) {
+            return `Cluster ${params.seriesName}<br/>x: ${params.value[0].toFixed(4)}<br/>y: ${params.value[1].toFixed(4)}`;
+          }
+        },
+        legend: { data: series.map(s => s.name) },
+        xAxis: { name: '经度标准化值', type: 'value' },
+        yAxis: { name: '纬度标准化值', type: 'value' },
+        series
+      });
+    } else {
+      // visualization 为空，清空图表并提示
+      const chart = echarts.init(scatterChart.value);
+      chart.clear();
+      chart.setOption({
+        title: { text: '暂无可视化数据', left: 'center', top: 'center', textStyle: { color: '#aaa', fontSize: 18 } }
+      });
+    }
   }
-  const featureColumns = selectedFeatures.value.map(feature => ({
-    title: titleMap[feature] || feature,
-    dataIndex: feature,
-    key: feature,
-  }))
-  return [...baseColumns, ...featureColumns]
-})
-
-// 表格数据
-const clusterTableData = computed(() => {
-  if (!clusterData.value) return []
-  return clusterData.value.clusters.map((cluster, index) => ({
-    ...cluster,
-    key: index
-  }))
-})
-
-const sampleTableData = computed(() => {
-  if (!clusterData.value) return []
-  return clusterData.value.samples.map((sample, index) => ({
-    ...sample,
-    key: index
-  }))
-})
-
-// 获取聚类分析数据
-const fetchClusterData = async () => {
-  loading.value = true
-  error.value = null
-  try {
-    // 构建请求参数，去除空字符串和null
-    const params = {}
-    // 必须参数
-    params.features = queryParams.value.features || 'price,single_price,use_area'
-    params.city_id = queryParams.value.city_id
-    params.n_clusters = queryParams.value.n_clusters
-    params.limit = queryParams.value.limit
-    // 可选参数 area_id
-    if (queryParams.value.area_id !== null && queryParams.value.area_id !== undefined && queryParams.value.area_id !== '' && queryParams.value.area_id !== 'null') {
-      params.area_id = queryParams.value.area_id
+  // 雷达图
+  if (radarChart.value && Array.isArray(result.value.clusters)) {
+    const chart = echarts.init(radarChart.value);
+    // 动态根据 params.features 生成特征列表，确保包含楼层特征
+    const features = featureOptions.filter(f => params.features.includes(f.value));
+    // 检查clusters数据是否包含特征值
+    if (result.value.clusters.length > 0) {
+      // 创建雷达图指标
+      const indicators = features.map(f => ({
+        name: f.label,
+        max: Math.max(...result.value.clusters.map(c => {
+          // 楼层特殊处理
+          if (f.value === 'floor') {
+            return parseFloat(c['floor_category'] || c['floor'] || 0) || 0;
+          }
+          return parseFloat(c[f.value] || 0) || 0;
+        })) * 1.2 || 1
+      }));
+      // 为每个聚类创建数据
+      const data = result.value.clusters.map(cluster => ({
+        value: features.map(f => {
+          // 楼层特殊处理
+          if (f.value === 'floor') {
+            return parseFloat(cluster['floor_category'] || cluster['floor'] || 0) || 0;
+          }
+          return parseFloat(cluster[f.value]) || 0;
+        }),
+        name: `Cluster ${cluster.cluster_id !== undefined ? cluster.cluster_id : (cluster.cluster !== undefined ? cluster.cluster : 0)}`
+      }));
+      chart.setOption({
+        tooltip: {},
+        legend: { data: data.map(d => d.name) },
+        radar: { indicator: indicators },
+        series: [{ type: 'radar', data }]
+      });
+    } else {
+      // 无数据时显示提示
+      chart.clear();
+      chart.setOption({
+        title: { text: '暂无聚类特征数据', left: 'center', top: 'center', textStyle: { color: '#aaa', fontSize: 18 } }
+      });
     }
-    // 可选参数 random_state
-    if (queryParams.value.random_state !== null && queryParams.value.random_state !== undefined && queryParams.value.random_state !== '') {
-      params.random_state = queryParams.value.random_state
-    }
-    const token = localStorage.getItem('access_token')
-    console.log('[聚类分析] 请求参数:', params)
-    const response = await axios.get('/house/cluster-analysis/', {
-      params,
-      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-    })
-    console.log('[聚类分析] 接口响应:', response)
-    let respData = null
-    if (response && response.data) {
-      if (response.data.code === 200 || response.data.code === '200') {
-        respData = response.data.data
-      } else if (response.data.code === 400 || response.data.code === '400') {
-        throw new Error(response.data.info || '数据量不足，无法进行聚类分析')
-      } else if (response.data.code === 500 || response.data.code === '500') {
-        throw new Error(response.data.info || '服务器内部错误')
+  }
+  // 饼图
+  if (pieChart.value && Array.isArray(result.value.clusters)) {
+    const chart = echarts.init(pieChart.value);
+    chart.setOption({
+      tooltip: { trigger: 'item' },
+      legend: { top: '5%', left: 'center' },
+      series: [{
+        name: '聚类数量',
+        type: 'pie',
+        radius: '50%',
+        data: result.value.clusters.map(c => ({ value: c.count, name: `Cluster ${c.cluster_id ?? c.cluster}` }))
+      }]
+    });
+  }
+  // 直方图
+  if (histChart.value) {
+    const chart = echarts.init(histChart.value);
+    
+    // 检查是否有直方图数据，如果没有则基于samples动态生成
+    if (result.value && result.value.histogram) {
+      // 使用API返回的直方图数据
+      const features = featureOptions;
+      const bins = result.value.histogram.bins || [];
+      const series = [];
+      
+      features.forEach(feature => {
+        if (result.value.histogram[feature.value]) {
+          series.push({
+            name: feature.label,
+            type: 'bar',
+            data: result.value.histogram[feature.value]
+          });
+        }
+      });
+      
+      if (series.length > 0) {
+        chart.setOption({
+          tooltip: {},
+          legend: { data: series.map(s => s.name) },
+          xAxis: { type: 'category', data: bins },
+          yAxis: {},
+          series
+        });
       } else {
-        throw new Error(response.data.info || '聚类分析失败')
+        // 无数据时显示提示
+        chart.clear();
+        chart.setOption({
+          title: { text: '暂无特征分布数据', left: 'center', top: 'center', textStyle: { color: '#aaa', fontSize: 18 } }
+        });
+      }
+    } else if (result.value && Array.isArray(result.value.samples) && result.value.samples.length > 0) {
+      // 动态生成直方图数据
+      const features = featureOptions;
+      const samples = result.value.samples;
+      const series = [];
+      
+      // 按聚类ID对样本进行分组
+      const clusterGroups = {};
+      samples.forEach(sample => {
+        const clusterId = sample.cluster !== undefined ? sample.cluster : (sample.cluster_id !== undefined ? sample.cluster_id : 0);
+        if (!clusterGroups[clusterId]) {
+          clusterGroups[clusterId] = [];
+        }
+        
+        // 确保楼层有分类值
+        if (sample.floor && !sample.floor_category) {
+          sample.floor_category = mapFloorToCategory(sample.floor);
+          sample.floor_text = sample.floor;
+        }
+        
+        clusterGroups[clusterId].push(sample);
+      });
+      
+      // 为每个特征创建系列数据
+      features.forEach(feature => {
+        if (samples[0][feature.value] !== undefined) {
+          // 为每个聚类创建一个系列
+          Object.keys(clusterGroups).forEach(clusterId => {
+            const clusterSamples = clusterGroups[clusterId];
+            series.push({
+              name: `Cluster ${clusterId} - ${feature.label}`,
+              type: 'bar',
+              stack: feature.label,
+              data: [clusterSamples.reduce((sum, sample) => {
+                // 特殊处理楼层数据
+                if (feature.value === 'floor') {
+                  return sum + (parseFloat(sample.floor_category) || 0);
+                }
+                return sum + (parseFloat(sample[feature.value]) || 0);
+              }, 0) / clusterSamples.length]
+            });
+          });
+        }
+      });
+      
+      if (series.length > 0) {
+        chart.setOption({
+          tooltip: {
+            trigger: 'axis',
+            axisPointer: { type: 'shadow' }
+          },
+          legend: {},
+          grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+          xAxis: [{ type: 'category', data: ['平均值'] }],
+          yAxis: [{ type: 'value' }],
+          series
+        });
+      } else {
+        chart.clear();
+        chart.setOption({
+          title: { text: '暂无特征分布数据', left: 'center', top: 'center', textStyle: { color: '#aaa', fontSize: 18 } }
+        });
       }
     } else {
-      throw new Error('无响应数据')
+      // 无数据时显示提示
+      chart.clear();
+      chart.setOption({
+        title: { text: '暂无特征分布数据', left: 'center', top: 'center', textStyle: { color: '#aaa', fontSize: 18 } }
+      });
     }
-    if (!respData || !respData.clusters) {
-      throw new Error('暂无聚类数据，请调整参数后重试')
-    }
-    clusterData.value = respData
-    message.success('聚类分析成功')
-    setTimeout(() => {
-      initCharts()
-    }, 100)
-  } catch (err) {
-    error.value = err.message || '网络错误'
-    message.error(`聚类分析请求失败: ${error.value}`)
-    clusterData.value = null
-  } finally {
-    loading.value = false
   }
 }
 
-// 初始化所有图表
-const initCharts = () => {
-  if (!clusterData.value) return
-  
-  // 根据当前激活的标签页初始化对应图表
-  if (activeTabKey.value === 'scatter') {
-    initScatterChart()
-  } else if (activeTabKey.value === 'radar') {
-    initRadarChart()
-  } else if (activeTabKey.value === 'bar') {
-    initBarChart()
-  }
-}
-
-// 监听标签页切换，初始化对应图表
-watch(activeTabKey, (newVal) => {
-  if (clusterData.value) {
-    if (newVal === 'scatter') {
-      initScatterChart()
-    } else if (newVal === 'radar') {
-      initRadarChart()
-    } else if (newVal === 'bar') {
-      initBarChart()
-    }
-  }
-})
-
-// 初始化散点图
-const initScatterChart = () => {
-  if (!scatterChart.value) return
-  
-  const chart = echarts.init(scatterChart.value)
-  
-  // 准备数据
-  const visualizationData = clusterData.value.visualization || []
-  const clusters = clusterData.value.clusters || []
-  
-  // 按聚类分组数据
-  const seriesData = []
-  const clusterMap = {}
-  
-  // 创建聚类映射
-  clusters.forEach(cluster => {
-    clusterMap[cluster.cluster_id] = cluster
-  })
-  
-  // 为每个聚类创建一个系列
-  Object.keys(clusterMap).forEach(clusterId => {
-    const clusterPoints = visualizationData.filter(point => point.cluster_id.toString() === clusterId)
-    
-    seriesData.push({
-      name: `聚类 ${clusterId}`,
-      type: 'scatter',
-      data: clusterPoints.map(point => [point.x, point.y]),
-      symbolSize: 10,
-    })
-  })
-  
-  const option = {
-    tooltip: {
-      trigger: 'item',
-      formatter: function(params) {
-        const pointIndex = params.dataIndex
-        const clusterId = Object.keys(clusterMap)[params.seriesIndex]
-        const clusterPoints = visualizationData.filter(point => point.cluster_id.toString() === clusterId)
-        const point = clusterPoints[pointIndex]
-        
-        if (!point) return ''
-        
-        return `ID: ${point.id}<br/>聚类: ${clusterId}`
-      }
-    },
-    legend: {
-      data: Object.keys(clusterMap).map(id => `聚类 ${id}`),
-      orient: 'vertical',
-      right: 10,
-      top: 'center'
-    },
-    xAxis: {},
-    yAxis: {},
-    series: seriesData
-  }
-  
-  chart.setOption(option)
-  window.addEventListener('resize', () => chart.resize())
-}
-
-// 初始化雷达图
-const initRadarChart = () => {
-  if (!radarChart.value) return
-  
-  const chart = echarts.init(radarChart.value)
-  
-  // 准备数据
-  const clusters = clusterData.value.clusters || []
-  const features = selectedFeatures.value
-  
-  // 计算每个特征的最大值，用于雷达图刻度
-  const maxValues = {}
-  features.forEach(feature => {
-    maxValues[feature] = Math.max(...clusters.map(cluster => cluster[feature]))
-  })
-  
-  // 雷达图指示器
-  const indicator = features.map(feature => {
-    const nameMap = {
-      price: '价格',
-      single_price: '单价',
-      use_area: '使用面积'
-    }
-    
-    return {
-      name: nameMap[feature],
-      max: maxValues[feature] * 1.2 // 最大值增加20%，使图表更美观
-    }
-  })
-  
-  // 准备系列数据
-  const seriesData = clusters.map(cluster => ({
-    value: features.map(feature => cluster[feature]),
-    name: `聚类 ${cluster.cluster_id}`
-  }))
-  
-  const option = {
-    tooltip: {},
-    legend: {
-      data: clusters.map(cluster => `聚类 ${cluster.cluster_id}`),
-      orient: 'vertical',
-      right: 10,
-      top: 'center'
-    },
-    radar: {
-      indicator: indicator
-    },
-    series: [{
-      type: 'radar',
-      data: seriesData
-    }]
-  }
-  
-  chart.setOption(option)
-  window.addEventListener('resize', () => chart.resize())
-}
-
-// 初始化柱状图
-const initBarChart = () => {
-  if (!barChart.value) return
-  
-  const chart = echarts.init(barChart.value)
-  
-  // 准备数据
-  const clusters = clusterData.value.clusters || []
-  
-  const option = {
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: {
-        type: 'shadow'
-      }
-    },
-    xAxis: {
-      type: 'category',
-      data: clusters.map(cluster => `聚类 ${cluster.cluster_id}`)
-    },
-    yAxis: {
-      type: 'value',
-      name: '样本数量'
-    },
-    series: [{
-      data: clusters.map(cluster => cluster.count),
-      type: 'bar',
-      showBackground: true,
-      backgroundStyle: {
-        color: 'rgba(180, 180, 180, 0.2)'
-      },
-      itemStyle: {
-        color: function(params) {
-          // 为不同聚类设置不同颜色
-          const colorList = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc', '#4e7c9a']
-          return colorList[params.dataIndex % colorList.length]
-        }
-      },
-      label: {
-        show: true,
-        position: 'top'
-      }
-    }]
-  }
-  
-  chart.setOption(option)
-  window.addEventListener('resize', () => chart.resize())
-}
-
-// 组件挂载时初始化
 onMounted(() => {
-  // 默认不自动加载数据，等用户点击分析按钮
-})
+  onCityChange(params.city);
+});
+
+function genTableColumns(samples) {
+  if (!samples || !Array.isArray(samples) || samples.length === 0) return [];
+  return Object.keys(samples[0])
+    .filter(key => key !== 'floor_category' && key !== 'floor_text') // 过滤掉内部使用的字段
+    .map(key => {
+      const column = {
+        title: columnTitleMap[key] || key,
+        dataIndex: key,
+        key: key
+      };
+      
+      // 为楼层添加自定义渲染函数
+      if (key === 'floor') {
+        column.customRender = ({ text }) => floorCategoryMap[mapFloorToCategory(text)] || text;
+      }
+      
+      return column;
+    });
+}
+
+watch(
+  () => result.value && result.value.samples,
+  (samples) => {
+    if (samples && Array.isArray(samples) && samples.length > 0) {
+      tableColumns.value = genTableColumns(samples);
+    }
+  },
+  { immediate: true }
+);
 </script>
 
 <style scoped>
 .cluster-analysis-container {
-  padding: 0;
+  padding: 24px;
 }
-
-.title {
-  font-size: 18px;
-  font-weight: bold;
-  margin-bottom: 16px;
-  padding-left: 8px;
-  border-left: 3px solid #1890ff;
-}
-
-.filter-card {
-  margin-bottom: 20px;
-  box-shadow: 0 1px 2px -2px rgba(0, 0, 0, 0.12), 0 3px 6px 0 rgba(0, 0, 0, 0.08), 0 5px 12px 4px rgba(0, 0, 0, 0.05);
-}
-
-.card-title {
-  display: flex;
-  align-items: center;
-  margin-bottom: 16px;
-  font-size: 16px;
-  font-weight: 500;
-}
-
-.card-title span {
-  margin-left: 8px;
-}
-
-.result-container {
-  margin-top: 20px;
-}
-
-.chart-container {
-  width: 100%;
-  height: 400px;
-  margin-top: 20px;
+.params-panel {
   background: #fff;
-  border-radius: 2px;
-  padding: 16px;
-  box-shadow: 0 1px 2px -2px rgba(0, 0, 0, 0.12), 0 3px 6px 0 rgba(0, 0, 0, 0.08), 0 5px 12px 4px rgba(0, 0, 0, 0.05);
+  padding: 24px;
+  border-radius: 8px;
+  margin-bottom: 24px;
 }
-
+.result-panel {
+  background: #fff;
+  padding: 24px;
+  border-radius: 8px;
+}
+.chart-container {
+  margin-bottom: 24px;
+}
 .chart-title {
-  font-size: 16px;
-  font-weight: 500;
-  margin-bottom: 16px;
-  color: rgba(0, 0, 0, 0.85);
-  padding-left: 8px;
-  border-left: 3px solid #1890ff;
+  font-weight: bold;
+  margin-bottom: 8px;
+  text-align: center;
+  font-size: 22px;
 }
-
 .chart {
   width: 100%;
-  height: 100%;
+  height: 400px;
 }
-
-.cluster-table,
-.sample-table {
-  margin-top: 20px;
-  background: #fff;
-  border-radius: 2px;
-  padding: 16px;
-  box-shadow: 0 1px 2px -2px rgba(0, 0, 0, 0.12), 0 3px 6px 0 rgba(0, 0, 0, 0.08), 0 5px 12px 4px rgba(0, 0, 0, 0.05);
+.loading-panel {
+  text-align: center;
+  padding: 48px 0;
 }
-
-.chart-row {
-  margin-bottom: 16px;
+.empty-panel {
+  text-align: center;
+  padding: 48px 0;
 }
 </style>

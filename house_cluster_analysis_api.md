@@ -1,29 +1,31 @@
-# 房源聚类分析接口文档
+# 房源聚类分析API文档
 
-## 接口概述
+## 接口URL
+`GET /house/cluster-analysis/`
 
-该接口使用K-means算法对房屋数据进行聚类分析，根据指定的特征将房源分组，并返回每个聚类的中心点和代表性样本。适用于房源价格区间分析、区域房源特征分析等场景。
-
-- **接口URL**: `/api/house/cluster-analysis/`
-- **请求方式**: GET
-- **认证要求**: JWT认证或会话认证
-- **算法版本**: v1.2.0
-- **数据来源**: 房源数据库
+---
 
 ## 请求参数
 
-| 参数名 | 类型 | 必填 | 描述 | 默认值 | 取值范围 |
-| ------ | ---- | ---- | ---- | ------ | -------- |
-| city_id | Integer | 否 | 城市ID，用于筛选特定城市的房源数据 | 无 | 正整数 |
-| area_id | Integer | 否 | 区域ID，用于筛选特定区域的房源数据 | 无 | 正整数 |
-| n_clusters | Integer | 否 | 聚类数量 | 3 | 2-10 |
-| features | String | 否 | 用于聚类的特征，多个特征用逗号分隔 | "price,single_price,use_area" | price(价格),single_price(单价),use_area(使用面积),total_area(建筑面积),room_count(房间数),floor(楼层) |
-| limit | Integer | 否 | 返回每个聚类的样本数量限制 | 10 | 1-100 |
-| random_state | Integer | 否 | 随机种子，用于结果复现 | 无 | 任意整数 |
+| 参数名         | 类型    | 是否必填 | 描述                                                         | 取值范围/格式                | 默认值                      | 示例         |
+|----------------|---------|----------|--------------------------------------------------------------|------------------------------|-----------------------------|--------------|
+| city_id        | int     | 否       | 城市ID，用于筛选特定城市的数据                               | 正整数                       | 无                          | 1            |
+| area_id        | int     | 否       | 区域ID，用于筛选特定区域的数据                               | 正整数                       | 无                          | 2            |
+| location_id    | int     | 否       | 位置ID，用于筛选特定位置的数据                               | 正整数                       | 无                          | 3            |
+| n_clusters     | int     | 否       | 聚类数量（仅KMeans有效）                                     | 2-10                         | 3                           | 4            |
+| features       | string  | 否       | 用于聚类的特征，多个特征用逗号分隔                           | price,single_price,use_area  | price,single_price,use_area | price,use_area|
+| limit          | int     | 否       | 每个聚类返回的样本数量                                       | 1-100                        | 10                          | 20           |
+| algorithm      | string  | 否       | 聚类算法                                                     | kmeans, dbscan               | kmeans                      | dbscan       |
+| eps            | float   | 否       | DBSCAN算法的邻域半径（仅dbscan有效）                         | >0                           | 0.5                         | 0.3          |
+| min_samples    | int     | 否       | DBSCAN算法的最小样本数（仅dbscan有效）                       | ≥1                           | 5                           | 3            |
+
+**说明：**
+- `features` 可选项包括：`price`（总价），`single_price`（单价），`use_area`（面积），可任意组合。
+- `algorithm` 默认为 `kmeans`，如需使用 `dbscan`，需同时指定 `eps` 和 `min_samples`。
+
+---
 
 ## 响应格式
-
-### 成功响应
 
 ```json
 {
@@ -32,140 +34,104 @@
   "data": {
     "clusters": [
       {
-        "price": 450.0,
-        "single_price": 4.5,
-        "use_area": 100.0,
-        "count": 120,
-        "cluster_id": 0
-      },
-      {
-        "price": 850.0,
-        "single_price": 8.5,
-        "use_area": 100.0,
-        "count": 80,
-        "cluster_id": 1
-      },
-      {
-        "price": 1200.0,
-        "single_price": 12.0,
-        "use_area": 100.0,
-        "count": 50,
-        "cluster_id": 2
+        "cluster_id": 0,
+        "count": 42,
+        "avg_price": 3200000,
+        "avg_single_price": 52000,
+        "avg_use_area": 61.5,
+        "representative_house": "阳光花园",
+        "characteristics": "中高端小区，面积60-70㎡"
       }
     ],
     "samples": [
       {
-        "id": 1001,
-        "house_name": "示例房源1",
-        "city_name": "北京",
-        "area_name": "朝阳区",
+        "id": 123,
+        "house_name": "阳光花园",
+        "city_name": "北京市",
+        "localhost": "朝阳区",
         "cluster_id": 0,
-        "price": 460.0,
-        "single_price": 4.6,
-        "use_area": 100.0
+        "price": 3150000,
+        "single_price": 51800,
+        "use_area": 62
       }
     ],
     "visualization": [
       {
-        "id": 1001,
-        "x": 1.2,
-        "y": -0.5,
+        "id": 123,
+        "x": 0.52,
+        "y": 0.31,
         "cluster_id": 0
       }
     ]
   },
   "features": ["price", "single_price", "use_area"],
-  "n_clusters": 3,
-  "algorithm": "K-means",
-  "elapsed_time": 0.45
+  "n_clusters": 3
 }
 ```
 
-### 错误响应
-
+## 错误响应
 ```json
 {
   "code": "400",
-  "info": "数据量不足，无法进行聚类分析",
-  "data": [],
-  "required_minimum": 6
+  "info": "参数错误",
+  "data": null
 }
 ```
 
-```json
-{
-  "code": "500",
-  "info": "服务器内部错误: 特征值包含非数值数据",
-  "data": []
-}
-```
+## 示例代码
+```python
+import requests
+import matplotlib.pyplot as plt
 
-## 前端调用示例
-
-### Vue 3 Composition API 示例
-
-```javascript
-import { ref } from 'vue';
-import axios from 'axios';
-
-const useClusterAnalysis = () => {
-  const result = ref(null);
-  const error = ref(null);
-  const loading = ref(false);
-
-  const fetchAnalysis = async (params = {}) => {
-    loading.value = true;
-    error.value = null;
-    
-    try {
-      const response = await axios.get('/api/house/cluster-analysis/', {
-        params: {
-          n_clusters: 3,
-          features: 'price,single_price,use_area',
-          limit: 10,
-          ...params
-        },
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-        }
-      });
-      
-      if (response.data.code === '200') {
-        result.value = response.data.data;
-      } else {
-        throw new Error(response.data.info);
-      }
-    } catch (err) {
-      error.value = err.message;
-      console.error('聚类分析错误:', err);
-    } finally {
-      loading.value = false;
+def get_cluster_data():
+    """获取聚类数据并处理"""
+    url = "http://localhost:8000/cluster-analysis/"
+    params = {
+        "city_id": 1,
+        "n_clusters": 4,
+        "features": "price,single_price"
     }
-  };
 
-  return { result, error, loading, fetchAnalysis };
-};
+    try:
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        data = response.json()
+        
+        if data['code'] != "200":
+            print(f"请求失败: {data['info']}")
+            return None
+            
+        return data['data']
+    except requests.exceptions.RequestException as e:
+        print(f"请求异常: {e}")
+        return None
 
-export default useClusterAnalysis;
+def visualize_clusters(clusters):
+    """可视化聚类结果"""
+    plt.figure(figsize=(10, 6))
+    
+    for cluster in clusters:
+        x = [point['x'] for point in cluster['points']]
+        y = [point['y'] for point in cluster['points']]
+        plt.scatter(x, y, label=f"Cluster {cluster['cluster']}")
+    
+    plt.xlabel("经度标准化值")
+    plt.ylabel("纬度标准化值")
+    plt.title("房源聚类分布")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+if __name__ == "__main__":
+    clusters = get_cluster_data()
+    if clusters:
+        for cluster in clusters:
+            print(f"Cluster {cluster['cluster']}: {cluster['count']} houses")
+            print(f"Average price: {cluster['centers']['price']}")
+        visualize_clusters(clusters)
 ```
 
-## 可视化建议
-
-1. **散点图矩阵**: 展示特征间关系
-2. **平行坐标图**: 比较不同聚类特征分布
-3. **热力图**: 展示聚类中心特征值
-
-## 性能指标
-
-| 数据量 | 平均响应时间 |
-| ------ | ----------- |
-| 1000条 | 0.3s |
-| 5000条 | 1.2s |
-| 10000条 | 2.5s |
-
-## 注意事项
-
-1. 最小数据量要求: n_clusters * 2
-2. 特征值必须为数值类型
-3. 大数据量建议使用异步接口
-4. 结果可能因随机种子不同而略有差异
+## 使用场景
+1. 分析不同价格区间的房源分布
+2. 识别相似特征的房源群体
+3. 为房源推荐系统提供数据支持

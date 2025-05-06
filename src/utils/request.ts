@@ -10,7 +10,7 @@ const router = useRouter();
 // 创建axios实例
 const service: AxiosInstance = axios.create({
     baseURL: import.meta.env.VITE_API_BASEURL, // 从环境变量获取
-    timeout: 10000,
+    timeout: 30000,
     withCredentials: true,
 });
 
